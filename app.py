@@ -130,7 +130,7 @@ if uploaded_file:
             hole=0.4,
             color='สถานะ',
             color_discrete_map={
-                'ปกติ': 'skyblue',
+                'ปกติ': 'PaleGreen',
                 'ใกล้หมด': 'orange',
                 'หมดอายุ': 'red',
                 'ไม่มีข้อมูล': 'gray'
