@@ -13,13 +13,12 @@ if "popup_shown" not in st.session_state:
     st.session_state.popup_shown = False
 
 # =========================
-# 🔗 ใส่ Google Sheets
-sheet_url = "https://docs.google.com/spreadsheets/d/1JbU_0hNzrYNAGvoEnN0etL9DkJ0vnhbtM6KNHBYtUgY/edit?usp=sharing"
+# 🔗 Google Sheets (แก้ตรงนี้)
+sheet_url = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv"
 
 # =========================
 st.title("📊 Employee Dashboard")
 
-# เลือกโหมด
 mode = st.radio("เลือกการใช้งาน", ["📱 มือถือ (ออนไลน์)", "💻 คอม (อัปโหลดไฟล์)"])
 
 # =========================
@@ -34,30 +33,38 @@ else:
         st.stop()
 
 # =========================
-# 🧹 แก้ชื่อคอลัมน์ (กัน error)
-df.columns = df.columns.str.strip()
-df.columns = df.columns.str.replace("\ufeff", "")
+# 🧹 ล้างชื่อคอลัมน์ (กัน error)
+df.columns = (
+    df.columns
+    .astype(str)
+    .str.strip()
+    .str.replace("\ufeff", "")
+    .str.replace("\n", "")
+    .str.replace("\r", "")
+)
 
-# 🔍 หา column อัตโนมัติ
-name_col = None
-phone_col = None
-expiry_col = None
+# 🔍 debug
+st.write("📋 คอลัมน์:", df.columns.tolist())
 
-for col in df.columns:
-    if "ชื่อ" in col:
-        name_col = col
-    if "เบอร์" in col or "โทร" in col:
-        phone_col = col
-    if "วันหมดอายุ" in col:
-        expiry_col = col
+# =========================
+# 🎯 หา column อัตโนมัติ
+def find_col(keywords):
+    for col in df.columns:
+        for k in keywords:
+            if k in col:
+                return col
+    return None
 
-# ❗ ถ้าไม่มี
+name_col = find_col(["ชื่อ"])
+phone_col = find_col(["เบอร์", "โทร"])
+expiry_col = find_col(["วันหมดอายุ", "หมดอายุ", "expiry"])
+
+# ❗ เช็ค
 if not expiry_col:
-    st.error("❌ ไม่พบคอลัมน์ 'วันหมดอายุ'")
-    st.write("คอลัมน์ที่มี:", df.columns.tolist())
+    st.error("❌ ไม่พบคอลัมน์วันหมดอายุ")
     st.stop()
 
-# rename ให้มาตรฐาน
+# rename
 df.rename(columns={
     name_col: "ชื่อพนักงาน" if name_col else "ชื่อพนักงาน",
     phone_col: "เบอร์โทร" if phone_col else "เบอร์โทร",
@@ -67,15 +74,17 @@ df.rename(columns={
 # =========================
 # 📅 แปลงวัน
 df['วันหมดอายุ'] = pd.to_datetime(df['วันหมดอายุ'], dayfirst=True, errors='coerce')
+
+# แปลง พ.ศ. → ค.ศ.
 df['วันหมดอายุ'] = df['วันหมดอายุ'].apply(
     lambda x: x.replace(year=x.year - 543) if pd.notnull(x) and x.year > 2400 else x
 )
 
+# =========================
 # 🧮 คำนวณ
 today = pd.Timestamp.today().normalize()
 df['เหลือ(วัน)'] = (df['วันหมดอายุ'] - today).dt.days
 
-# 🎯 สถานะ
 def status(x):
     if pd.isna(x):
         return "ไม่มีข้อมูล"
