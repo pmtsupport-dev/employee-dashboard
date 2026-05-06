@@ -5,12 +5,15 @@ import plotly.express as px
 # =========================
 st.set_page_config(page_title="Dashboard", layout="wide")
 
-# 🧠 state filter
+# 🧠 state
 if "filter_status" not in st.session_state:
     st.session_state.filter_status = "ทั้งหมด"
 
+if "popup_shown" not in st.session_state:
+    st.session_state.popup_shown = False
+
 # =========================
-# 🎨 CSS เดิม + เพิ่มปุ่มใส
+# 🎨 CSS
 st.markdown("""
 <style>
 .main {
@@ -37,14 +40,12 @@ h1 {
 .kpi {
     font-size: 28px;
     font-weight: bold;
-    color: #27ae60;
+    color: #66CDAA;
 }
 
-/* 👇 ปุ่มใสคลุมการ์ด */
+/* ปุ่มใส */
 .card button {
     position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     opacity: 0;
@@ -85,7 +86,30 @@ if uploaded_file:
     df['สถานะ'] = df['เหลือ(วัน)'].apply(status)
 
     # =========================
-    # 🔢 KPI (คลิกได้)
+    # 🚨 ALERT + POPUP
+    near_count = (df['สถานะ'] == "ใกล้หมด").sum()
+    expired_count = (df['สถานะ'] == "หมดอายุ").sum()
+
+    if expired_count > 0:
+        st.error(f"🚨 มีเบอร์หมดอายุ {expired_count} รายการ!")
+
+    if near_count > 0:
+        st.warning(f"⚠️ มีเบอร์ใกล้หมด {near_count} รายการ!")
+
+    # 🎯 popup กลางจอ
+    @st.dialog("🔔 แจ้งเตือนระบบ")
+    def show_popup():
+        st.error(f"🚨 หมดอายุ {expired_count} รายการ")
+        st.warning(f"⚠️ ใกล้หมด {near_count} รายการ")
+        st.write("กรุณาตรวจสอบข้อมูล")
+        if st.button("ปิด"):
+            st.session_state.popup_shown = True
+
+    if expired_count > 0 and not st.session_state.popup_shown:
+        show_popup()
+
+    # =========================
+    # 🔢 KPI
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -104,7 +128,7 @@ if uploaded_file:
             st.session_state.filter_status = "ใกล้หมด"
         st.markdown(f"""
             <div>⚠️ ใกล้หมด</div>
-            <div class="kpi">{(df['สถานะ']=="ใกล้หมด").sum()}</div>
+            <div class="kpi">{near_count}</div>
         """, unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -114,50 +138,31 @@ if uploaded_file:
             st.session_state.filter_status = "หมดอายุ"
         st.markdown(f"""
             <div>❌ หมดอายุ</div>
-            <div class="kpi">{(df['สถานะ']=="หมดอายุ").sum()}</div>
+            <div class="kpi">{expired_count}</div>
         """, unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
+    # =========================
+    # 🔍 SEARCH
+    search = st.text_input("🔍 ค้นหา (ชื่อพนักงาน / เบอร์โทร)")
 
     # =========================
     # 📊 กราฟ
     col4, col5 = st.columns(2)
 
     with col4:
-        fig = px.pie(
-            df,
-            names='สถานะ',
-            title='สัดส่วนพนักงาน',
-            hole=0.4,
-            color='สถานะ',
-            color_discrete_map={
-                'ปกติ': 'PaleGreen',
-                'ใกล้หมด': 'orange',
-                'หมดอายุ': 'red',
-                'ไม่มีข้อมูล': 'gray'
-            }
-        )
-
-        fig.update_traces(textinfo='percent+label')
+        fig = px.pie(df, names='สถานะ', hole=0.4)
         fig.update_layout(transition_duration=800)
-
         st.plotly_chart(fig, use_container_width=True)
 
     with col5:
         df['เดือน'] = df['วันหมดอายุ'].dt.to_period('M').astype(str)
-
-        fig2 = px.bar(
-            df,
-            x='เดือน',
-            color='สถานะ',
-            title='แนวโน้มวันหมดอายุ'
-        )
-
+        fig2 = px.bar(df, x='เดือน', color='สถานะ')
         fig2.update_layout(transition_duration=800)
-
         st.plotly_chart(fig2, use_container_width=True)
 
     # =========================
-    # 📋 ตาราง (กรองตามที่คลิก)
+    # 📋 TABLE
     st.subheader("📋 ตารางวันหมดอายุ")
 
     df_sorted = df.sort_values(by='วันหมดอายุ')
@@ -169,8 +174,14 @@ if uploaded_file:
     else:
         df_show = df_sorted
 
-    st.write(f"🔎 กำลังแสดง: {st.session_state.filter_status}")
+    # 🔍 filter search
+    if search:
+        df_show = df_show[
+            df_show['ชื่อพนักงาน'].astype(str).str.contains(search, case=False) |
+            df_show['เบอร์โทร'].astype(str).str.contains(search, case=False)
+        ]
 
+    st.write(f"🔎 กำลังแสดง: {st.session_state.filter_status}")
     st.dataframe(df_show, use_container_width=True)
 
 else:
