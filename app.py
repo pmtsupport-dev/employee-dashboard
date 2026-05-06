@@ -14,7 +14,7 @@ if "popup_shown" not in st.session_state:
 
 # =========================
 # 🔗 Google Sheets (แก้ตรงนี้)
-sheet_url = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv"
+sheet_url = "https://docs.google.com/spreadsheets/d/1JbU_0hNzrYNAGvoEnN0etL9DkJ0vnhbtM6KNHBYtUgY/edit?usp=sharing"
 
 # =========================
 st.title("📊 Employee Dashboard")
