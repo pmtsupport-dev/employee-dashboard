@@ -393,9 +393,81 @@ if search:
     ]
 
 # =========================
-# 📋 TABLE
-st.dataframe(
+# 📋 TABLE + REALTIME EDIT
+st.subheader("📋 จัดการข้อมูลพนักงาน")
+
+df_show = df_show.sort_values(by='วันหมดอายุ')
+
+edited_df = st.data_editor(
     df_show,
+    num_rows="dynamic",
     use_container_width=True,
-    height=500
+    height=500,
+    key="employee_editor"
 )
+
+# =========================
+# 💾 SAVE + REFRESH
+save1, save2 = st.columns(2)
+
+with save1:
+
+    if st.button("💾 บันทึกข้อมูล", use_container_width=True):
+
+        try:
+
+            edited_df.to_csv(
+                "updated_employee_data.csv",
+                index=False,
+                encoding="utf-8-sig"
+            )
+
+            st.success("✅ บันทึกข้อมูลเรียบร้อย")
+
+            st.toast(
+                "📁 บันทึกข้อมูลแล้ว",
+                icon="✅"
+            )
+
+        except Exception as e:
+
+            st.error(f"❌ Error: {e}")
+
+with save2:
+
+    if st.button("🔄 รีเฟรช", use_container_width=True):
+
+        st.cache_data.clear()
+
+        st.rerun()
+
+# =========================
+# 📥 DOWNLOAD CSV
+csv = edited_df.to_csv(
+    index=False
+).encode("utf-8-sig")
+
+st.download_button(
+    label="📥 ดาวน์โหลด CSV",
+    data=csv,
+    file_name="employee_dashboard.csv",
+    mime="text/csv",
+    use_container_width=True
+)
+
+# =========================
+# 📊 SUMMARY
+st.markdown(f"""
+<div style="
+background: rgba(255,255,255,0.05);
+padding:15px;
+border-radius:15px;
+margin-top:10px;
+border:1px solid rgba(255,255,255,0.1);
+">
+
+📊 จำนวนข้อมูลทั้งหมด:
+<b>{len(edited_df)}</b> รายการ
+
+</div>
+""", unsafe_allow_html=True)
