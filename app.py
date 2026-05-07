@@ -134,7 +134,7 @@ if "popup_shown" not in st.session_state:
 
 # =========================
 # 🔗 GOOGLE SHEETS CSV
-sheet_url = "https://docs.google.com/spreadsheets/d/1JbU_0hNzrYNAGvoEnN0etL9DkJ0vnhbtM6KNHBYtUgY/export?format=csv&gid=2016692387"
+sheet_url = "https://docs.google.com/spreadsheets/d/1JbU_0hNzrYNAGvoEnN0etL9DkJ0vnhbtM6KNHBYtUgY/export?format=csv"
 
 # =========================
 # 📥 LOAD DATA
